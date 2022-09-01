@@ -25,9 +25,18 @@ class S3BucketConnector():
         self._s3 = self.sesssion.resource(service_name='s3', endpoint_url =endpoint_url)
         self._bucket = self._s3.Bucket(bucket)
 
+    def list_files_in_prefix(self, prefix: str):
 
-    def list_files_in_prefix(self):
-        pass
+        """
+        listing of files with a matching prefix in the S3 bucket
+
+        :param prefix: prefix on the S3 bucket
+
+        return: 
+            files: list of all file names matching the prefix
+        """
+        files =[obj.key for obj in self._bucket.objects.filter(Prefix=prefix)]
+        return files
 
     def read_csv_to_df(self):
         pass
