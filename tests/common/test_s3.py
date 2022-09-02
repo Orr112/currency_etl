@@ -56,16 +56,16 @@ class TestS3BucketConnectorMethods(unittest.TestCase):
         key1_exp = f'{prefix_exp}test1.csv'
         key2_exp = f'{prefix_exp}test2.csv'
         # Test init
-        csv_content = """col1,col2,
+        csv_content = """col1,col2
         valA,valB"""
-        self.s3_bucket.put_object(body=csv_content, Key=key1_exp)
-        self.s3_bucket.put_object(body=csv_content, Key=key2_exp)
+        self.s3_bucket.put_object(Body=csv_content, Key=key1_exp)
+        self.s3_bucket.put_object(Body=csv_content, Key=key2_exp)
         # Method execution
-        list_result = self.s3_bucket_conn.list_files_in_prefixx(prefix_exp)
+        list_result = self.s3_bucket_conn.list_files_in_prefix(prefix_exp)
         # Tests after method execution
         self.assertEqual(len(list_result),2)
-        self.assertIN(key1_exp, list_result)
-        self.assertIN(key2_exp, list_result)
+        self.assertIn(key1_exp, list_result)
+        self.assertIn(key2_exp, list_result)
         # Cleanup after Test
         self.s3_bucket.delete_objects(
             Delete={
@@ -80,12 +80,19 @@ class TestS3BucketConnectorMethods(unittest.TestCase):
             }
         )
 
+    print("test")
+
     def test_list_file_in_prefix_wrong_prefix(self):
         """
         Test what occurs for incorrect or prefixes that do not exists
         """
-        pass 
-
+        # Expected results
+        prefix_exp = 'no-prefix/'
+        # Method execution
+        list_result = self.s3_bucket_conn.list_files_in_prefix(prefix_exp)
+        # Tests after method execution
+        self.assertTrue(not list_result)
+ 
 
 if __name__ == "__main__":
     unittest.main()
