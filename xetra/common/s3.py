@@ -52,7 +52,7 @@ class S3BucketConnector():
             data_frame: Pandas DataFrame with data from file extracted from S3
         """
         self._logger.info('Readign file %s/%s%s', self.endpoint_url, self._bucket.name, key)
-        csv_obj = self._bucket.Objects(key=key).get().get('Body').read().decode(encoding)
+        csv_obj = self._bucket.Object(key=key).get().get('Body').read().decode(encoding)
         data = StringIO(csv_obj)
         df = pd.read_csv(data, delimiter=sep)
         return df

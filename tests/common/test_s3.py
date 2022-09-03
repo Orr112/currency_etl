@@ -104,7 +104,7 @@ class TestS3BucketConnectorMethods(unittest.TestCase):
         col2_exp = 'col2'
         val1_exp = 'val1'
         val2_exp = 'val2'
-        log_exp = f'Reading file {self.s3_endpoint_url}/{self.s3_buket_name}/{key_exp}'
+        log_exp = f'Reading file {self.s3_endpoint_url}/{self.s3_bucket_name}/{key_exp}'
         # Test init
         csv_content = f'{col1_exp},{col2_exp}\n{val1_exp},{val2_exp}'
         self.s3_bucket.put_object(Body=csv_content, Key=key_exp)
