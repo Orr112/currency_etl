@@ -1,6 +1,8 @@
 """Connector and methods for acessing S3"""
 import os
 import logging
+import pandas as pd
+from io import StringIO, BytesIO
 
 import boto3
 
@@ -38,11 +40,28 @@ class S3BucketConnector():
         files =[obj.key for obj in self._bucket.objects.filter(Prefix=prefix)]
         return files
 
-    def read_csv_to_df(self):
-        pass
+    def read_csv_to_df(self, key: str,  encoding: str = 'utf-8', sep: str =','):
+        """
+        Csv file from S3 into a dataframe
 
-    def write_df_to_s3(self):
-        pass
+        :param key: file key
+        :encoding: encoding file data into csv readable format
+        :sep: separator used in file
+
+        returns:
+            data_frame: Pandas DataFrame with data from file extracted from S3
+        """
+        self._logger.info('Readign file %s/%s%s', self.endpoint_url, self._bucket.name, key)
+        csv_obj = self._bucket.Objects(key=key).get().get('Body').read().decode(encoding)
+        data = StringIO(csv_obj)
+        df = pd.read_csv(data, delimiter=sep)
+        return df
+
+    def write_df_to_s3(self, key: str, bucket, df):
+        out_buffer = BytesIO()
+        df.to_csv(out_buffer, index=False)
+        bucket.put_object(Body=out_buffer.getvalue(), Key=key)
+        return True
 
 
 
