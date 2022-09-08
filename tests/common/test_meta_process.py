@@ -9,7 +9,7 @@ from io import StringIO, BytesIO
 from datetime import datetime, timedelta
 from xetra.common.constants import MetaProcessFormat
 from xetra.common.meta_process import MetaProcesFormat
-from xetra.common.custom_exceptions import WrongFormatException
+from xetra.common.custom_exceptions import WrongFormatException, WrongMetaFileException
 from xetra.common.s3 import S3BucketConnector
 
 class TestMetaProcessMethods(unittest.TestCase):
@@ -84,5 +84,97 @@ class TestMetaProcessMethods(unittest.TestCase):
                     
                 ]
 
+            }
+        )
+
+    def test_update_meta_file_empty_date_list(self):
+        """
+        Test the update_meta_file method when extract_date list is empty
+        """
+        # Expected results
+        return_exp = True
+        log_exp = 'The dataframe is empty! No file will be written'
+        # Test init
+        date_list = []
+        meta_key = 'meta.csv'
+        # Method execution
+        with self.assertLogs() as logm:
+            result = MetaProcessFormat.update_meta_file(date_list, meta_key, self.s3_bucket_meta)
+            # Log test after method execution
+            self.assertIn(log_exp, logm.output[1])
+        self.assertEqual(return_exp, result)
+
+    def test_update_meta_file_meta_file_ok(self):
+        """
+        Test the update_meta_file method when there is aleady a meta file
+        """
+        # Expected results
+        date_list_old = ['2022-09-05','2022-09-06']
+        date_list_new = ['2022-09-07','2022-09-08']
+        date_list_exp = date_list_old + date_list_new
+        proc_date_list_exp = [datetime.today().date()] * 4
+        # Test init
+        meta_key = 'meta.csv'
+        meta_content = (
+            f'{MetaProcessFormat.META_SOURCE_DATE_COL.value},'
+            f'{MetaProcessFormat.META_PROCESS_COL.value}\n'
+            f'{date_list_old[0]},'
+            f'{datetime.today().strftime(MetaProcessFormat.META_PROCESS_DATE_FORMAT.value)}\n'
+            f'{date_list_old[1]},'
+            f'{datetime.today().strftime(MetaProcessFormat.META_PROCESS_DATE_FORMAT.value)}'
+        )
+        self.s3_bucket.put_object(Body=meta_content, Key=meta_key)
+        # Method execution
+        MetaProcessFormat.update_meta_file(date_list_new, meta_key, self.s3_bucket_meta)
+        # Read meta file
+        data = self.s3_bucket.Object(key=meta_key).get().get('Body').read().decode('utf-8')
+        out_buffer = StringIO(data)
+        df_meta_result = pd.read_csv(out_buffer)
+        date_list_result = list(df_meta_result[
+            MetaProcessFormat.META_SOURCE_DATE_COV.value])
+        proc_date_list_result = list(pd.to_datetime(df_meta_result[MetaProcessFormat.META_PROCESS_COL.value])\
+                               .dt.date)
+        # Test after method execution
+        self.assertEqual(date_list_exp, date_list_result)
+        self.assertEquql(proc_date_list_exp, proc_date_list_result)
+        # Cleanup after test
+        self.s3_bucket.delete_objects(
+            Delete={
+                'Objects': [
+                    {
+                        'Key': meta_key
+                    }
+                ]
+            }
+        )
+
+    def test_update_meta_file_meta_file_wrong(self):
+        """
+        Tests the update_meta_file method when the meta file is incorrect
+        """
+        # Expected results
+        date_list_old = ['2022-09-02', '2022-09-03']
+        date_list_new = ['2022-09-06', '2022-09-07']
+        # Test init
+        meta_key = 'meta.csv'
+        meta_content = (
+            f'wrong_column,{MetaProcessFormat.META_PROCESS_COL.value}\n'
+            f'{date_list_old[0]},'
+            f'{datetime.today().strftime(MetaProcessFormat.META_PROCESS_DATE_FORMAT.value)}\n'
+            f'{date_list_old[1]},'
+            f'{datetime.today().strftime(MetaProcessFormat.META_PROCESS_DATE_FORMAT.value)}'
+        )
+        self.s3_bucket.put_object(Body=meta_content, Key=meta_key)
+        # Method execution
+        with self.assertRaises(WrongMetaFileException):
+            MetaProcessFormat.update_meta_file(date_list_new, meta_key, self.s3_bucket_meta)
+        # Cleanup afte test
+        self.s3_bucket.delete_objects(
+            Delete={
+                'Objects': [
+                    {
+                        'Key': meta_key
+                    }
+                ]
             }
         )

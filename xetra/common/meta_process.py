@@ -1,5 +1,6 @@
 import pandas as pd
 from datetime import datetime, timedelta
+from collections import Counter
 from s3 import S3BucketConnector
 from custom_exceptions import WrongMetaFileException
 from constants import MetaProcessFormat
@@ -34,7 +35,7 @@ class MetaProcesFormat():
             # If meta file exists - union data frame of old and new meta data is created
             df_old = s3_bucket_meta.read_csv_to_df(meta_key)
             if collections.Counter(df_old.columns) != collections.Counter(df_new.columns):
-                raise WrongMetalFileExecption
+                raise WrongMetaFileException
             df_all = pd.concat([df_old, df_new])
         except s3_bucket_meta.session.client('s3').exceptions.NoSuchKey:
             # No meta file exists - only the new data is used
