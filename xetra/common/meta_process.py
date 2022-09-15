@@ -1,14 +1,14 @@
 import pandas as pd
 from datetime import datetime, timedelta
 from collections import Counter
-from s3 import S3BucketConnector
-from custom_exceptions import WrongMetaFileException
-from constants import MetaProcessFormat
+from xetra.common.s3 import S3BucketConnector
+from xetra.common.custom_exceptions import WrongMetaFileException
+from xetra.common.constants import MetaProcessFormat
 """
 Meta file processing 
 """
 
-class MetaProcesFormat():
+class MetaProcess():
 
     def __init__(self):
         pass
@@ -24,7 +24,7 @@ class MetaProcesFormat():
         """
         # Creating an empty DataFrame using the meta file column names
         df_new = pd.DataFrame(columns=[
-            MetaProcessFormat.META_SOURCE_DATA_COL.value,
+            MetaProcessFormat.META_SOURCE_DATE_COL.value,
             MetaProcessFormat.META_PROCESS_COL.value])
         # Filling the date column with extract_date_list
         df_new[MetaProcessFormat.META_SOURCE_DATE_COL.value] = extract_date_list
@@ -41,7 +41,7 @@ class MetaProcesFormat():
             # No meta file exists - only the new data is used
             df_all = df_new
         # Writing to S3
-        s3_bucket_meta.write_df_to_s3(df_all, meta_key, MetaProcesFormat.META_FILE_FORMAT.value)
+        s3_bucket_meta.write_df_to_s3(df_all, meta_key, MetaProcessFormat.META_FILE_FORMAT.value)
         return True
 
     @staticmethod
@@ -73,10 +73,10 @@ class MetaProcesFormat():
             dates_missing = set(dates[1:]) - src_dates
             if dates_missing:
                 # Determining the earliest date the should be extracted
-                min_date = min(set(dates[1:] - src_dates) - timedelta(days=1))
+                min_date = min(set(dates[1:]) - src_dates) - timedelta(days=1)
                 # Creating a list of dates from min_date until today
                 return_min_date = (min_date + timedelta(days=1))\
-                    .stftime(MetaProcessFormat.META_DATE_FORMAT.value)
+                    .strftime(MetaProcessFormat.META_DATE_FORMAT.value)
                 return_dates = [
                     date.strftime(MetaProcessFormat.META_DATE_FORMAT.value) \
                         for date in dates if date > min_date

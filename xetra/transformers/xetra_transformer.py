@@ -1,7 +1,8 @@
 """Xetra ETL"""
 import logging
+import pandas as pd
 from typing import NamedTuple
-
+from xetra.common.meta_process import MetaProcess
 from xetra.common.s3 import S3BucketConnector
 
 
@@ -82,13 +83,29 @@ class XetraETL():
         self.meta_key = meta_key
         self.src_args = src_args
         self.trg_args = trg_args
-        self.extract_date = 'string'
-        self.extract_date_list = []
-        self.update_date_list = []
+        self.extract_date, self.extract_date_list = MetaProcess.return_date_list(
+            self.src_args.src_first_extract_date, self.meta_key, self.s3_bucket_trg)
+        
+        self.meta_update_list = None
 
 
-    def extract():
-        pass
+    def extract(self):
+        """
+        Read the source data and concatenates the data into one DataFrame.
+
+        :returns:
+            data_frame: Padas DataFrame with the extracted data
+        """
+        self._logger.info('Extracting Xetra source files started....')
+        files = [key for date in self.extract_date_list\
+                    for key in self.s3_bucket_src.list_files_in_prefix(date)]
+        if not files:
+            data_frame = pd.DataFrame()
+        else:
+            data_frame = pd.concat([self.s3_bucket_src.read_csv_to_df(file)\
+                for file in files], ignore_index=True)
+        self._logger.info('Extracting Xetra source files finished.')
+        return data_frame         
 
 
     def transform_report1():
